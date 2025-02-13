@@ -1,50 +1,86 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_auth_ui/supabase_auth_ui.dart'; //ui login pakai library supabase_auth_ui, dari dokumentasi
-import 'produk.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'home.dart'; // Pastikan home.dart sudah di-import
 
-class Login extends StatelessWidget { //pakai widget parent statelesswidget
+class Login extends StatefulWidget {
   const Login({super.key});
 
   @override
+  _LoginState createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+  final TextEditingController namaController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final supabase = Supabase.instance.client;
+
+  Future<void> login() async {
+    String nama = namaController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (nama.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama dan Password harus diisi')),
+      );
+      return;
+    }
+
+    // Query ke database untuk mencari user berdasarkan nama dan password
+    final response = await supabase
+        .from('user')
+        .select()
+        .eq('nama', nama)
+        .eq('password', password)
+        .maybeSingle(); // Mengambil satu data atau null
+
+    if (response != null) {
+      // Jika login berhasil, pindah ke halaman Home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Home()),
+      );
+    } else {
+      // Jika login gagal, tampilkan pesan
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama atau Password salah')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold( //pakai widget scaffold, isi halaman dibungkus pakai widget scaffold
-      //bagian appbar
+    return Scaffold(
       appBar: AppBar(
         title: const Text('Login'),
-        centerTitle: true, //judul login di appbar ada di tengah
+        centerTitle: true,
       ),
-      //bagian body halaman
       body: Padding(
-        padding: const EdgeInsets.all(
-            16.0), //jarak dari samping supaya tidak menempel dengan bagian samping, jaraknya di semua sisi
-        child: SupaEmailAuth( //ini template dari halaman library supabase nya
-          redirectTo: 'produk', //pergi ke halaman produk setelah login
-          onSignInComplete: (response) { //aksi setelah login
-            //setelah login, ke halaman produk
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const Produk()) //pergi ke class produk di file produk.dart
-            );
-          },
-          onSignUpComplete: (response) { //aksi setelah daftar akun
-            //setelah daftar, pergi ke halaman produk
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const Produk()),
-            );
-          },
-          metadataFields: [
-            MetaDataField(
-              prefixIcon: const Icon(Icons.person),
-              label: 'Username',
-              key: 'username',
-              validator: (val) {
-                if (val == null || val.isEmpty) {
-                  return 'Username tidak boleh kosong';
-                }
-                return null;
-              },
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: namaController,
+              decoration: const InputDecoration(
+                labelText: 'Nama',
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: login,
+              child: const Text('Login'),
             ),
           ],
         ),
